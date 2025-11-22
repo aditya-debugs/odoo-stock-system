@@ -6,6 +6,7 @@ import {
 import User from "../models/User.js";
 import demoAccounts from "../data/demoAccounts.js";
 import { generateToken } from "../utils/generateToken.js";
+import logger from "../config/logger.js";
 
 export const register = async (req, res, next) => {
   try {
@@ -23,6 +24,7 @@ export const register = async (req, res, next) => {
       data: result,
     });
   } catch (error) {
+    logger.error("Registration error:", error.message);
     next(error);
   }
 };
@@ -43,13 +45,17 @@ export const login = async (req, res, next) => {
       data: result,
     });
   } catch (error) {
+    logger.error("Login error:", error.message);
     next(error);
   }
 };
 
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.user.id);
+    // Find user by user_key (primary key in dim_user table)
+    const user = await User.findByPk(req.user.user_key, {
+      attributes: { exclude: ["password"] },
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -63,6 +69,7 @@ export const getMe = async (req, res, next) => {
       data: { user },
     });
   } catch (error) {
+    logger.error("GetMe error:", error.message);
     next(error);
   }
 };

@@ -10,6 +10,7 @@
     "db:inspect": "node src/utils/inspectDatabase.js",
     "db:migrate": "node src/prisma/migrate.js",
     "db:seed": "node src/seeds/seedUsers.js",
+    "db:seed:new": "node src/seeds/seedDatabase.js",
     "test": "jest --watchAll"
   },
   "keywords": [],

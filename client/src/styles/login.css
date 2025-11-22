@@ -4,6 +4,56 @@
   display: flex;
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  position: relative;
+}
+
+/* ========== ANIMATED BACKGROUND CIRCLES ========== */
+.bg-circles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-circles .circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(79, 70, 229, 0.05);
+  animation: float 8s ease-in-out infinite;
+}
+
+.bg-circles .circle:nth-child(1) {
+  width: 300px;
+  height: 300px;
+  top: -100px;
+  right: -100px;
+  animation-delay: 0s;
+}
+
+.bg-circles .circle:nth-child(2) {
+  width: 200px;
+  height: 200px;
+  bottom: 100px;
+  left: 10%;
+  animation-delay: 2s;
+}
+
+.bg-circles .circle:nth-child(3) {
+  width: 250px;
+  height: 250px;
+  bottom: -50px;
+  right: 20%;
+  animation-delay: 4s;
+}
+
+/* ========== LOGIN CONTENT WRAPPER ========== */
+.login-content {
+  display: flex;
+  width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 /* ========== LEFT PANEL - BRANDING ========== */
@@ -57,6 +107,56 @@
   z-index: 1;
   text-align: center;
   max-width: 320px;
+}
+
+/* ========== BRAND SECTION (for signup compatibility) ========== */
+.brand-section {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 320px;
+}
+
+.brand-section h1 {
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+  color: white;
+}
+
+.brand-section .brand-tagline {
+  font-size: 16px;
+  opacity: 0.95;
+  margin-bottom: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.brand-section .brand-description {
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.85;
+  margin-bottom: 40px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.logo-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  font-size: 48px;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.bounce-animation {
+  animation: bounce 2s ease-in-out infinite;
 }
 
 .logo-icon {
@@ -140,6 +240,18 @@
   max-width: 400px;
 }
 
+/* ========== FORM CONTAINER ========== */
+.form-container {
+  width: 100%;
+}
+
+.form-container h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
 .login-header {
   margin-bottom: 32px;
   text-align: center;
@@ -155,6 +267,26 @@
 .login-header p {
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+/* ========== FORM SUBTITLE & LINKS ========== */
+.form-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--secondary);
+  text-decoration: underline;
 }
 
 /* ========== FORM STYLES ========== */
@@ -185,23 +317,79 @@
   gap: 0;
 }
 
+/* ========== PASSWORD INPUT WRAPPER (for signup compatibility) ========== */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px 8px;
+  z-index: 3;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  transform: scale(1.15);
+  opacity: 0.8;
+}
+
+.password-toggle:active {
+  transform: scale(0.95);
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 44px;
+}
+
 .input-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   font-size: 16px;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+/* Hide icon when input has focus or value */
+.input-wrapper .form-input:focus ~ .input-icon,
+.input-wrapper .form-input:not(:placeholder-shown) ~ .input-icon {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+/* For inputs with icons, add padding to the left */
+.input-wrapper .form-input {
+  padding-left: 44px;
 }
 
 .form-input {
   width: 100%;
-  padding: 12px 12px 12px 40px;
+  padding: 12px 12px 12px 12px;
   border: 1.5px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   background: white;
   color: var(--text-primary);
   transition: all 0.2s ease;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
 .form-input:focus {
@@ -213,6 +401,12 @@
 
 .form-input::placeholder {
   color: var(--text-muted);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.form-input:focus::placeholder {
+  opacity: 0;
 }
 
 .toggle-password {
@@ -222,13 +416,21 @@
   border: none;
   cursor: pointer;
   font-size: 16px;
-  padding: 4px 8px;
-  z-index: 2;
-  transition: transform 0.2s ease;
+  padding: 6px 8px;
+  z-index: 3;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toggle-password:hover {
-  transform: scale(1.1);
+  transform: scale(1.15);
+  opacity: 0.8;
+}
+
+.toggle-password:active {
+  transform: scale(0.95);
 }
 
 /* ========== ERROR & SUCCESS ========== */
@@ -247,6 +449,26 @@
 .error-icon {
   font-size: 16px;
   flex-shrink: 0;
+}
+
+/* ========== ERROR TEXT (for form validation) ========== */
+.error-text {
+  font-size: 12px;
+  color: var(--error);
+  margin-top: -4px;
+  display: block;
+}
+
+.form-input.error {
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.form-input.error:focus {
+  outline: none;
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.03);
 }
 
 /* ========== BUTTONS ========== */
@@ -359,7 +581,103 @@
   cursor: not-allowed;
 }
 
-/* ========== FOOTER ========== */
+/* ========== PASSWORD STRENGTH ========== */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #e5e7eb;
+  transition: background-color 0.3s ease;
+}
+
+.strength-bar.active {
+  background-color: #16a34a;
+}
+
+.strength-text {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* ========== FEATURES LIST ========== */
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ========== AUTH FOOTER ========== */
+.auth-footer {
+  text-align: center;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.auth-link-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.auth-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.auth-link:hover {
+  color: var(--secondary);
+  text-decoration: underline;
+}
+
+.auth-footer .text-muted {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ========== OLD FOOTER (DEPRECATED) ========== */
 .login-footer {
   text-align: center;
   margin-top: 24px;

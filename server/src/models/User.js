@@ -3,40 +3,51 @@ import bcrypt from "bcryptjs";
 import sequelize from "../config/db.js";
 
 const User = sequelize.define(
-  "User",
+  "dim_user",
   {
-    id: {
-      type: DataTypes.INTEGER,
+    user_key: {
+      type: DataTypes.BIGINT,
       primaryKey: true,
       autoIncrement: true,
     },
+    user_id: {
+      type: DataTypes.BIGINT,
+    },
     name: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
     email: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: DataTypes.TEXT,
+      allowNull: true,
       unique: true,
-      validate: {
-        isEmail: true,
-      },
     },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    role: {
-      type: DataTypes.ENUM("user", "admin"),
-      defaultValue: "user",
+    phone: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
-    isActive: {
+    role_key: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
+    is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
   },
   {
-    timestamps: true,
+    tableName: "dim_user",
+    timestamps: false,
+    createdAt: "created_at",
+    updatedAt: false,
     hooks: {
       beforeCreate: async (user) => {
         if (user.password) {

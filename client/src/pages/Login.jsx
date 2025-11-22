@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { loginUser, demoLogin } from "../services/authService";
+import { loginUser } from "../services/authService";
 import "../styles/login.css";
 
 const Login = () => {
@@ -25,24 +25,7 @@ const Login = () => {
       login(user, token);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemo = async (role = "admin") => {
-    setError("");
-    setLoading(true);
-    try {
-      const response = await demoLogin({ role });
-      const userData = response.data || response;
-      const { user, token } = userData;
-      if (!token) throw new Error("Demo login failed");
-      login(user, token);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || "Demo login failed");
+      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -86,7 +69,6 @@ const Login = () => {
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
               <div className="input-wrapper">
-                <span className="input-icon">✉️</span>
                 <input
                   type="email"
                   id="email"
@@ -96,6 +78,7 @@ const Login = () => {
                   required
                   className="form-input"
                 />
+                <span className="input-icon">✉️</span>
               </div>
             </div>
 
@@ -103,7 +86,6 @@ const Login = () => {
             <div className="form-group">
               <label htmlFor="password">Password</label>
               <div className="input-wrapper">
-                <span className="input-icon">🔒</span>
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
@@ -113,6 +95,7 @@ const Login = () => {
                   required
                   className="form-input"
                 />
+                <span className="input-icon">🔒</span>
                 <button
                   type="button"
                   className="toggle-password"
@@ -150,37 +133,16 @@ const Login = () => {
                 </>
               )}
             </button>
-
-            {/* Divider */}
-            <div className="divider">
-              <span>or</span>
-            </div>
-
-            {/* Demo Buttons */}
-            <div className="demo-buttons">
-              <button
-                type="button"
-                onClick={() => handleDemo("admin")}
-                disabled={loading}
-                className="btn-secondary demo-btn"
-                title="Login as Admin for demo"
-              >
-                <span>👤 Demo Admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemo("user")}
-                disabled={loading}
-                className="btn-secondary demo-btn"
-                title="Login as User for demo"
-              >
-                <span>👥 Demo User</span>
-              </button>
-            </div>
           </form>
 
-          {/* Footer */}
-          <div className="login-footer">
+          {/* Signup Link */}
+          <div className="auth-footer">
+            <p className="auth-link-text">
+              Don't have an account?{" "}
+              <Link to="/signup" className="auth-link">
+                Create one now
+              </Link>
+            </p>
             <p className="text-muted">
               🔐 Your data is secure and encrypted in transit
             </p>

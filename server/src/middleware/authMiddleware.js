@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Role from "../models/Role.js";
+import logger from "../config/logger.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
@@ -16,9 +18,9 @@ export const authMiddleware = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_key");
 
-    // Find user
+    // Find user by user_key
     const user = await User.findByPk(decoded.id, {
       attributes: { exclude: ["password"] },
     });
@@ -30,7 +32,7 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    if (!user.isActive) {
+    if (!user.is_active) {
       return res.status(401).json({
         success: false,
         message: "Account is deactivated",
@@ -54,6 +56,7 @@ export const authMiddleware = async (req, res, next) => {
         message: "Token expired",
       });
     }
+    logger.error("Auth middleware error:", error.message);
     next(error);
   }
 };

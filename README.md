@@ -26,83 +26,137 @@ mern-postgres-app/
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
+- PostgreSQL (v14 or higher) running locally or via Docker
 - npm or yarn
 
-### Installation
+### Installation & Environment Setup
 
-1. Clone the repository
-2. Install dependencies for all workspaces:
+1. **Clone the repository**
 
-   ```bash
-   npm run install:all
-   ```
+2. **Install root dependencies:**
 
-3. Set up environment variables:
+```bash
+npm install
+```
 
-   - Copy `.env.example` to `.env` in both `client/` and `server/` directories
-   - Update the values according to your setup
+3. **Install server dependencies:**
 
-4. Set up the database:
-   ```bash
-   npm run db:migrate --workspace=server
-   npm run db:seed --workspace=server
-   ```
-#### Run PostgreSQL with Docker (recommended)
+```bash
+cd server
+npm install
+cd ..
+```
 
-If you don't have a local Postgres server, you can run one with Docker using the provided `docker-compose.yml`.
+4. **Install client dependencies:**
 
-1. Start Postgres and pgAdmin:
+```bash
+cd client
+npm install
+cd ..
+```
+
+5. **Create and configure `.env` files**
+
+**Server .env** (`server/.env`):
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=Stock_Inventory
+DB_USER=postgres
+DB_PASSWORD=rush@1108
+NODE_ENV=development
+PORT=5001
+JWT_SECRET=your_jwt_secret_key_change_in_production
+JWT_EXPIRES_IN=7d
+CLIENT_URL=http://localhost:5173
+```
+
+**Client .env** (`client/.env`):
+```
+VITE_API_URL=http://localhost:5001
+```
+
+### Database Setup
+
+**Option A: Using PostgreSQL Locally**
+
+1. Ensure PostgreSQL is running on `localhost:5432`
+2. Create a database named `Stock_Inventory` (or update DB_NAME in .env)
+3. Ensure the user `postgres` with password `rush@1108` has access (or update credentials in .env)
+
+**Option B: Using Docker Compose**
+
+1. Ensure Docker is installed and running
+2. From the project root, run:
 
 ```powershell
 docker-compose up -d
-# or: docker compose up -d
 ```
 
-2. Copy the example env into the server folder and update if needed:
-
-```powershell
-cd server
-copy .env.example .env
-```
-
-3. Start the server (in project root or inside `server/`):
-
-```powershell
-# from project root
-cd server; npm install; npm run dev
-
-# or from inside server/
-npm install; npm run dev
-```
-
-4. (Optional) Open pgAdmin at `http://localhost:8080` (login: `admin@local` / `admin`) and connect to host `host.docker.internal` or `localhost`, port `5432`, user and password from `.env`.
-
-When finished, stop containers:
-
-```powershell
-docker-compose down
-``` 
+This will start PostgreSQL and pgAdmin. Access pgAdmin at `http://localhost:8080` (login: admin@local / admin).
 
 ### Running the Application
 
-#### Development Mode
+#### Development Mode (Separate Terminals)
 
-Run both client and server concurrently:
-
-```bash
+**Terminal 1 - Backend Server:**
+```powershell
+cd server
 npm run dev
 ```
+Server will run on `http://localhost:5001`
 
-Or run them separately:
-
-```bash
-# Terminal 1 - Backend
-npm run server
-
-# Terminal 2 - Frontend
-npm run client
+**Terminal 2 - Frontend:**
+```powershell
+cd client
+npm run dev
 ```
+Frontend will run on `http://localhost:5173` (Vite will print the exact URL)
+
+### Database Integration & Authentication
+
+The application now uses the PostgreSQL schema with `dim_user` and `dim_role` tables for user management.
+
+#### Initialize Default Roles and Users
+
+Before first login, seed the database with default roles and test users:
+
+```powershell
+cd server
+npm run db:seed:new
+```
+
+This creates:
+- **Roles**: admin, user, manager, viewer
+- **Test Admin**: admin@stockmaster.com / Admin@123456
+- **Test User**: user@stockmaster.com / User@123456
+
+#### Authentication Flow
+
+1. **Sign Up**: Go to `/signup` and create a new account
+   - Form validation for email and password
+   - Password strength indicator
+   - User is automatically assigned "user" role
+   - User stored in `dim_user` table
+
+2. **Sign In**: Go to `/login` with your credentials
+   - Email and password authentication
+   - JWT token generated (valid for 7 days)
+   - Redirected to `/dashboard` on success
+
+3. **Protected Routes**: Dashboard and other pages require valid JWT token
+   - Token stored in localStorage
+   - Token validated on every protected route request
+
+#### Demo Credentials (No DB Required - Optional)
+
+The app still includes a **demo-login** endpoint for testing without database setup:
+
+To use demo login, you would need to uncomment the demo buttons in the login page (currently removed for cleaner UI). The endpoint exists at `POST /api/auth/demo-login`.
+
+**Real Database Credentials** (after seeding):
+- Email: `admin@stockmaster.com` | Password: `Admin@123456`
+- Email: `user@stockmaster.com` | Password: `User@123456`
 
 #### Production Mode
 
