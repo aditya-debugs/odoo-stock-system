@@ -33,6 +33,15 @@ const Login = () => {
 
   return (
     <div className="login-container">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate("/")}
+        className="back-button"
+        title="Go back to home"
+      >
+        ←
+      </button>
+
       {/* Left Panel - Branding */}
       <div className="login-panel login-panel-left slide-in-left">
         <div className="login-branding">

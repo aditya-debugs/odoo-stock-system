@@ -152,6 +152,15 @@ const Signup = () => {
 
   return (
     <div className="login-container">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate("/")}
+        className="back-button"
+        title="Go back to home"
+      >
+        ←
+      </button>
+
       {/* Animated Background Circles */}
       <div className="bg-circles">
         <div className="circle"></div>
