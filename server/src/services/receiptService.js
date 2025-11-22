@@ -1,7 +1,7 @@
 import sequelize from "../config/db.js";
 import {
   Receipt,
-  ReceiptLine,
+  Operation,
   Location,
   Product,
   Stock,
@@ -10,315 +10,149 @@ import {
 } from "../models/index.js";
 import logger from "../config/logger.js";
 
-const generateReceiptId = async () => {
-  const lastReceipt = await Receipt.findOne({
-    order: [["receipt_key", "DESC"]],
-  });
-  
-  const nextNumber = lastReceipt ? parseInt(lastReceipt.receipt_id.split("-")[1]) + 1 : 1;
-  return `REC-${String(nextNumber).padStart(5, "0")}`;
-};
-
-export const getReceipts = async () => {
+const getReceipts = async (filters = {}) => {
   try {
     const receipts = await Receipt.findAll({
       include: [
         {
-          model: Location,
-          as: "destination",
-          attributes: ["location_key", "location_name"],
-        },
-        {
-          model: User,
-          as: "creator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: User,
-          as: "validator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: ReceiptLine,
-          as: "lines",
+          model: Operation,
+          as: "operation",
           include: [
             {
-              model: Product,
-              as: "product",
-              attributes: ["product_key", "product_name", "sku", "uom"],
+              model: User,
+              as: "creator",
+              attributes: ["user_key", "username"],
             },
           ],
         },
       ],
       order: [["created_at", "DESC"]],
+      limit: 50,
     });
-
     return receipts;
   } catch (error) {
-    logger.error("Error in getReceipts:", error);
-    throw error;
+    logger.error("Error fetching receipts:", error);
+    return [];
   }
 };
 
-export const getReceipt = async (receiptKey) => {
+const getReceiptById = async (receipt_key) => {
   try {
-    const receipt = await Receipt.findByPk(receiptKey, {
+    const receipt = await Receipt.findByPk(receipt_key, {
       include: [
         {
-          model: Location,
-          as: "destination",
-          attributes: ["location_key", "location_name"],
-        },
-        {
-          model: User,
-          as: "creator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: User,
-          as: "validator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: ReceiptLine,
-          as: "lines",
+          model: Operation,
+          as: "operation",
           include: [
             {
-              model: Product,
-              as: "product",
-              attributes: ["product_key", "product_name", "sku", "uom"],
+              model: User,
+              as: "creator",
+              attributes: ["user_key", "username"],
             },
           ],
         },
       ],
     });
-
-    if (!receipt) {
-      throw new Error("Receipt not found");
-    }
-
     return receipt;
   } catch (error) {
-    logger.error("Error in getReceipt:", error);
-    throw error;
+    logger.error("Error fetching receipt:", error);
+    return null;
   }
 };
 
-export const createReceipt = async (receiptData, userKey) => {
+const createReceipt = async (receiptData) => {
   const transaction = await sequelize.transaction();
-
   try {
-    const receiptId = await generateReceiptId();
+    const operation = await Operation.create(
+      {
+        status: "draft",
+        reference_no: receiptData.receipt_id || "NEW",
+        meta: { lines: receiptData.lines || [] },
+        created_by_key: receiptData.created_by,
+      },
+      { transaction }
+    );
 
     const receipt = await Receipt.create(
       {
-        receipt_id: receiptId,
+        operation_key: operation.operation_key,
         supplier_name: receiptData.supplier_name,
-        destination_location_key: receiptData.destination_location_key,
-        receipt_date: receiptData.receipt_date || new Date(),
-        notes: receiptData.notes,
-        created_by: userKey,
+        invoice_number: receiptData.invoice_number,
       },
       { transaction }
     );
 
-    if (receiptData.lines && receiptData.lines.length > 0) {
-      const lines = receiptData.lines.map((line) => ({
-        receipt_key: receipt.receipt_key,
-        product_key: line.product_key,
-        quantity: line.quantity,
-      }));
-
-      await ReceiptLine.bulkCreate(lines, { transaction });
-    }
-
     await transaction.commit();
-
-    return await getReceipt(receipt.receipt_key);
+    return await getReceiptById(receipt.receipt_key);
   } catch (error) {
     await transaction.rollback();
-    logger.error("Error in createReceipt:", error);
+    logger.error("Error creating receipt:", error);
     throw error;
   }
 };
 
-export const updateReceipt = async (receiptKey, receiptData) => {
-  const transaction = await sequelize.transaction();
-
+const updateReceipt = async (receipt_key, updateData) => {
   try {
-    const receipt = await Receipt.findByPk(receiptKey);
+    const receipt = await Receipt.findByPk(receipt_key);
+    if (!receipt) throw new Error("Receipt not found");
 
-    if (!receipt) {
-      throw new Error("Receipt not found");
-    }
-
-    if (receipt.status === "validated") {
-      throw new Error("Cannot update a validated receipt");
-    }
-
-    await receipt.update(
-      {
-        supplier_name: receiptData.supplier_name,
-        destination_location_key: receiptData.destination_location_key,
-        receipt_date: receiptData.receipt_date,
-        notes: receiptData.notes,
-      },
-      { transaction }
-    );
-
-    if (receiptData.lines) {
-      await ReceiptLine.destroy({
-        where: { receipt_key: receiptKey },
-        transaction,
-      });
-
-      if (receiptData.lines.length > 0) {
-        const lines = receiptData.lines.map((line) => ({
-          receipt_key: receiptKey,
-          product_key: line.product_key,
-          quantity: line.quantity,
-        }));
-
-        await ReceiptLine.bulkCreate(lines, { transaction });
-      }
-    }
-
-    await transaction.commit();
-
-    return await getReceipt(receiptKey);
-  } catch (error) {
-    await transaction.rollback();
-    logger.error("Error in updateReceipt:", error);
-    throw error;
-  }
-};
-
-export const deleteReceipt = async (receiptKey) => {
-  const transaction = await sequelize.transaction();
-
-  try {
-    const receipt = await Receipt.findByPk(receiptKey);
-
-    if (!receipt) {
-      throw new Error("Receipt not found");
-    }
-
-    if (receipt.status === "validated") {
-      throw new Error("Cannot delete a validated receipt");
-    }
-
-    await ReceiptLine.destroy({
-      where: { receipt_key: receiptKey },
-      transaction,
-    });
-
-    await receipt.destroy({ transaction });
-
-    await transaction.commit();
-
-    return { message: "Receipt deleted successfully" };
-  } catch (error) {
-    await transaction.rollback();
-    logger.error("Error in deleteReceipt:", error);
-    throw error;
-  }
-};
-
-export const validateReceipt = async (receiptKey, userKey) => {
-  const transaction = await sequelize.transaction();
-
-  try {
-    const receipt = await Receipt.findByPk(receiptKey, {
-      include: [
-        {
-          model: ReceiptLine,
-          as: "lines",
-          include: [
-            {
-              model: Product,
-              as: "product",
-            },
-          ],
-        },
-      ],
-    });
-
-    if (!receipt) {
-      throw new Error("Receipt not found");
-    }
-
-    if (receipt.status === "validated") {
-      throw new Error("Receipt is already validated");
-    }
-
-    if (!receipt.lines || receipt.lines.length === 0) {
-      throw new Error("Cannot validate a receipt with no lines");
-    }
-
-    // Update stock for each line
-    for (const line of receipt.lines) {
-      const stock = await Stock.findOne({
-        where: {
-          product_key: line.product_key,
-          location_key: receipt.destination_location_key,
-        },
-        transaction,
-      });
-
-      if (stock) {
-        await stock.update(
-          {
-            quantity_on_hand: parseFloat(stock.quantity_on_hand) + parseFloat(line.quantity),
-          },
-          { transaction }
-        );
-      } else {
-        await Stock.create(
-          {
-            product_key: line.product_key,
-            location_key: receipt.destination_location_key,
-            quantity_on_hand: line.quantity,
-          },
-          { transaction }
-        );
-      }
-
-      // Create stock movement record
-      await StockMovement.create(
-        {
-          movement_id: `${receipt.receipt_id}-${line.product_key}`,
-          movement_type: "receipt",
-          reference: receipt.receipt_id,
-          product_key: line.product_key,
-          destination_location_key: receipt.destination_location_key,
-          quantity: line.quantity,
-          uom: line.product.uom,
-          movement_date: new Date(),
-          validated_by: userKey,
-          validated_at: new Date(),
-          notes: `Receipt from ${receipt.supplier_name || "supplier"}`,
-          created_by: receipt.created_by,
-          created_at: receipt.created_at,
-        },
-        { transaction }
+    await receipt.update(updateData);
+    
+    if (updateData.lines && receipt.operation_key) {
+      await Operation.update(
+        { meta: { lines: updateData.lines } },
+        { where: { operation_key: receipt.operation_key } }
       );
     }
 
-    await receipt.update(
-      {
-        status: "validated",
-        validated_by: userKey,
-        validated_at: new Date(),
-      },
-      { transaction }
+    return await getReceiptById(receipt_key);
+  } catch (error) {
+    logger.error("Error updating receipt:", error);
+    throw error;
+  }
+};
+
+const deleteReceipt = async (receipt_key) => {
+  try {
+    const receipt = await Receipt.findByPk(receipt_key);
+    if (!receipt) throw new Error("Receipt not found");
+
+    if (receipt.operation_key) {
+      await Operation.destroy({ where: { operation_key: receipt.operation_key } });
+    }
+    await receipt.destroy();
+    return true;
+  } catch (error) {
+    logger.error("Error deleting receipt:", error);
+    throw error;
+  }
+};
+
+const validateReceipt = async (receipt_key, validated_by) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const receipt = await Receipt.findByPk(receipt_key, { transaction });
+    if (!receipt) throw new Error("Receipt not found");
+
+    await Operation.update(
+      { status: "validated", validated_by_key: validated_by },
+      { where: { operation_key: receipt.operation_key }, transaction }
     );
 
     await transaction.commit();
-
-    return await getReceipt(receiptKey);
+    return await getReceiptById(receipt_key);
   } catch (error) {
     await transaction.rollback();
-    logger.error("Error in validateReceipt:", error);
+    logger.error("Error validating receipt:", error);
     throw error;
   }
+};
+
+export default {
+  getReceipts,
+  getReceiptById,
+  createReceipt,
+  updateReceipt,
+  deleteReceipt,
+  validateReceipt,
 };

@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
 const ReceiptLine = sequelize.define(
-  "fact_receipt_line",
+  "fact_receipt_lines",
   {
     receipt_line_key: {
       type: DataTypes.BIGINT,
@@ -41,7 +41,7 @@ const ReceiptLine = sequelize.define(
     },
   },
   {
-    tableName: "fact_receipt_line",
+    tableName: "fact_receipt_lines",
     timestamps: false,
   }
 );

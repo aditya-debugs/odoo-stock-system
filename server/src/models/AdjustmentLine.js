@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
 const AdjustmentLine = sequelize.define(
-  "fact_adjustment_line",
+  "fact_adjustment_lines",
   {
     adjustment_line_key: {
       type: DataTypes.BIGINT,
@@ -54,7 +54,7 @@ const AdjustmentLine = sequelize.define(
     },
   },
   {
-    tableName: "fact_adjustment_line",
+    tableName: "fact_adjustment_lines",
     timestamps: false,
   }
 );

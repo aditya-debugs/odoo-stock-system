@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
 const TransferLine = sequelize.define(
-  "fact_transfer_line",
+  "fact_transfer_lines",
   {
     transfer_line_key: {
       type: DataTypes.BIGINT,
@@ -41,7 +41,7 @@ const TransferLine = sequelize.define(
     },
   },
   {
-    tableName: "fact_transfer_line",
+    tableName: "fact_transfer_lines",
     timestamps: false,
   }
 );

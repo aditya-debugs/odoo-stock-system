@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
 const DeliveryLine = sequelize.define(
-  "fact_delivery_line",
+  "fact_delivery_lines",
   {
     delivery_line_key: {
       type: DataTypes.BIGINT,
@@ -41,7 +41,7 @@ const DeliveryLine = sequelize.define(
     },
   },
   {
-    tableName: "fact_delivery_line",
+    tableName: "fact_delivery_lines",
     timestamps: false,
   }
 );

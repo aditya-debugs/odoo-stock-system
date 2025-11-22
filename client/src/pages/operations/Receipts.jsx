@@ -336,8 +336,8 @@ const Receipts = () => {
                     </select>
                     <input
                       type="number"
-                      value={line.quantity}
-                      onChange={(e) => handleLineChange(index, "quantity", parseFloat(e.target.value))}
+                      value={line.quantity || ""}
+                      onChange={(e) => handleLineChange(index, "quantity", parseFloat(e.target.value) || 0)}
                       style={{ padding: "0.75rem", border: "1px solid #e2e8f0", borderRadius: "8px" }}
                       placeholder="Quantity"
                       min="0"

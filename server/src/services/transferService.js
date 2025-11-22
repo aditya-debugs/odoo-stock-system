@@ -1,370 +1,88 @@
 import sequelize from "../config/db.js";
-import {
-  Transfer,
-  TransferLine,
-  Location,
-  Product,
-  Stock,
-  StockMovement,
-  User,
-} from "../models/index.js";
+import { Transfer, Operation, Location, Product, Stock, StockMovement, User } from "../models/index.js";
 import logger from "../config/logger.js";
 
-const generateTransferId = async () => {
-  const lastTransfer = await Transfer.findOne({
-    order: [["transfer_key", "DESC"]],
-  });
-  
-  const nextNumber = lastTransfer ? parseInt(lastTransfer.transfer_id.split("-")[1]) + 1 : 1;
-  return `TRF-${String(nextNumber).padStart(5, "0")}`;
-};
-
-export const getTransfers = async () => {
+const getTransfers = async (filters = {}) => {
   try {
     const transfers = await Transfer.findAll({
-      include: [
-        {
-          model: Location,
-          as: "source",
-          attributes: ["location_key", "location_name"],
-        },
-        {
-          model: Location,
-          as: "destination",
-          attributes: ["location_key", "location_name"],
-        },
-        {
-          model: User,
-          as: "creator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: User,
-          as: "validator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: TransferLine,
-          as: "lines",
-          include: [
-            {
-              model: Product,
-              as: "product",
-              attributes: ["product_key", "product_name", "sku", "uom"],
-            },
-          ],
-        },
-      ],
+      include: [{ model: Operation, as: "operation", include: [{ model: User, as: "creator", attributes: ["user_key", "username"] }] }],
       order: [["created_at", "DESC"]],
+      limit: 50,
     });
-
     return transfers;
   } catch (error) {
-    logger.error("Error in getTransfers:", error);
-    throw error;
+    logger.error("Error fetching transfers:", error);
+    return [];
   }
 };
 
-export const getTransfer = async (transferKey) => {
+const getTransferById = async (transfer_key) => {
   try {
-    const transfer = await Transfer.findByPk(transferKey, {
-      include: [
-        {
-          model: Location,
-          as: "source",
-          attributes: ["location_key", "location_name"],
-        },
-        {
-          model: Location,
-          as: "destination",
-          attributes: ["location_key", "location_name"],
-        },
-        {
-          model: User,
-          as: "creator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: User,
-          as: "validator",
-          attributes: ["user_key", "username", "first_name", "last_name"],
-        },
-        {
-          model: TransferLine,
-          as: "lines",
-          include: [
-            {
-              model: Product,
-              as: "product",
-              attributes: ["product_key", "product_name", "sku", "uom"],
-            },
-          ],
-        },
-      ],
+    const transfer = await Transfer.findByPk(transfer_key, {
+      include: [{ model: Operation, as: "operation", include: [{ model: User, as: "creator", attributes: ["user_key", "username"] }] }],
     });
-
-    if (!transfer) {
-      throw new Error("Transfer not found");
-    }
-
     return transfer;
   } catch (error) {
-    logger.error("Error in getTransfer:", error);
-    throw error;
+    logger.error("Error fetching transfer:", error);
+    return null;
   }
 };
 
-export const createTransfer = async (transferData, userKey) => {
+const createTransfer = async (transferData) => {
   const transaction = await sequelize.transaction();
-
   try {
-    if (transferData.source_location_key === transferData.destination_location_key) {
-      throw new Error("Source and destination locations must be different");
-    }
-
-    const transferId = await generateTransferId();
-
-    const transfer = await Transfer.create(
-      {
-        transfer_id: transferId,
-        source_location_key: transferData.source_location_key,
-        destination_location_key: transferData.destination_location_key,
-        transfer_date: transferData.transfer_date || new Date(),
-        notes: transferData.notes,
-        created_by: userKey,
-      },
-      { transaction }
-    );
-
-    if (transferData.lines && transferData.lines.length > 0) {
-      const lines = transferData.lines.map((line) => ({
-        transfer_key: transfer.transfer_key,
-        product_key: line.product_key,
-        quantity: line.quantity,
-      }));
-
-      await TransferLine.bulkCreate(lines, { transaction });
-    }
-
+    const operation = await Operation.create({ status: "draft", reference_no: transferData.transfer_id || "NEW", meta: { lines: transferData.lines || [] }, created_by_key: transferData.created_by }, { transaction });
+    const transfer = await Transfer.create({ operation_key: operation.operation_key, transfer_reason: transferData.transfer_reason }, { transaction });
     await transaction.commit();
-
-    return await getTransfer(transfer.transfer_key);
+    return await getTransferById(transfer.transfer_key);
   } catch (error) {
     await transaction.rollback();
-    logger.error("Error in createTransfer:", error);
+    logger.error("Error creating transfer:", error);
     throw error;
   }
 };
 
-export const updateTransfer = async (transferKey, transferData) => {
-  const transaction = await sequelize.transaction();
-
+const updateTransfer = async (transfer_key, updateData) => {
   try {
-    const transfer = await Transfer.findByPk(transferKey);
-
-    if (!transfer) {
-      throw new Error("Transfer not found");
+    const transfer = await Transfer.findByPk(transfer_key);
+    if (!transfer) throw new Error("Transfer not found");
+    await transfer.update(updateData);
+    if (updateData.lines && transfer.operation_key) {
+      await Operation.update({ meta: { lines: updateData.lines } }, { where: { operation_key: transfer.operation_key } });
     }
+    return await getTransferById(transfer_key);
+  } catch (error) {
+    logger.error("Error updating transfer:", error);
+    throw error;
+  }
+};
 
-    if (transfer.status === "validated") {
-      throw new Error("Cannot update a validated transfer");
-    }
+const deleteTransfer = async (transfer_key) => {
+  try {
+    const transfer = await Transfer.findByPk(transfer_key);
+    if (!transfer) throw new Error("Transfer not found");
+    if (transfer.operation_key) await Operation.destroy({ where: { operation_key: transfer.operation_key } });
+    await transfer.destroy();
+    return true;
+  } catch (error) {
+    logger.error("Error deleting transfer:", error);
+    throw error;
+  }
+};
 
-    if (transferData.source_location_key === transferData.destination_location_key) {
-      throw new Error("Source and destination locations must be different");
-    }
-
-    await transfer.update(
-      {
-        source_location_key: transferData.source_location_key,
-        destination_location_key: transferData.destination_location_key,
-        transfer_date: transferData.transfer_date,
-        notes: transferData.notes,
-      },
-      { transaction }
-    );
-
-    if (transferData.lines) {
-      await TransferLine.destroy({
-        where: { transfer_key: transferKey },
-        transaction,
-      });
-
-      if (transferData.lines.length > 0) {
-        const lines = transferData.lines.map((line) => ({
-          transfer_key: transferKey,
-          product_key: line.product_key,
-          quantity: line.quantity,
-        }));
-
-        await TransferLine.bulkCreate(lines, { transaction });
-      }
-    }
-
+const validateTransfer = async (transfer_key, validated_by) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const transfer = await Transfer.findByPk(transfer_key, { transaction });
+    if (!transfer) throw new Error("Transfer not found");
+    await Operation.update({ status: "validated", validated_by_key: validated_by }, { where: { operation_key: transfer.operation_key }, transaction });
     await transaction.commit();
-
-    return await getTransfer(transferKey);
+    return await getTransferById(transfer_key);
   } catch (error) {
     await transaction.rollback();
-    logger.error("Error in updateTransfer:", error);
+    logger.error("Error validating transfer:", error);
     throw error;
   }
 };
 
-export const deleteTransfer = async (transferKey) => {
-  const transaction = await sequelize.transaction();
-
-  try {
-    const transfer = await Transfer.findByPk(transferKey);
-
-    if (!transfer) {
-      throw new Error("Transfer not found");
-    }
-
-    if (transfer.status === "validated") {
-      throw new Error("Cannot delete a validated transfer");
-    }
-
-    await TransferLine.destroy({
-      where: { transfer_key: transferKey },
-      transaction,
-    });
-
-    await transfer.destroy({ transaction });
-
-    await transaction.commit();
-
-    return { message: "Transfer deleted successfully" };
-  } catch (error) {
-    await transaction.rollback();
-    logger.error("Error in deleteTransfer:", error);
-    throw error;
-  }
-};
-
-export const validateTransfer = async (transferKey, userKey) => {
-  const transaction = await sequelize.transaction();
-
-  try {
-    const transfer = await Transfer.findByPk(transferKey, {
-      include: [
-        {
-          model: TransferLine,
-          as: "lines",
-          include: [
-            {
-              model: Product,
-              as: "product",
-            },
-          ],
-        },
-      ],
-    });
-
-    if (!transfer) {
-      throw new Error("Transfer not found");
-    }
-
-    if (transfer.status === "validated") {
-      throw new Error("Transfer is already validated");
-    }
-
-    if (!transfer.lines || transfer.lines.length === 0) {
-      throw new Error("Cannot validate a transfer with no lines");
-    }
-
-    // Update stock for each line
-    for (const line of transfer.lines) {
-      // Deduct from source location
-      const sourceStock = await Stock.findOne({
-        where: {
-          product_key: line.product_key,
-          location_key: transfer.source_location_key,
-        },
-        transaction,
-      });
-
-      if (!sourceStock) {
-        throw new Error(`No stock found for product ${line.product.product_name} at source location`);
-      }
-
-      const newSourceQuantity = parseFloat(sourceStock.quantity_on_hand) - parseFloat(line.quantity);
-
-      if (newSourceQuantity < 0) {
-        throw new Error(`Insufficient stock for product ${line.product.product_name}. Available: ${sourceStock.quantity_on_hand}, Required: ${line.quantity}`);
-      }
-
-      await sourceStock.update(
-        {
-          quantity_on_hand: newSourceQuantity,
-        },
-        { transaction }
-      );
-
-      // Add to destination location
-      const destStock = await Stock.findOne({
-        where: {
-          product_key: line.product_key,
-          location_key: transfer.destination_location_key,
-        },
-        transaction,
-      });
-
-      if (destStock) {
-        await destStock.update(
-          {
-            quantity_on_hand: parseFloat(destStock.quantity_on_hand) + parseFloat(line.quantity),
-          },
-          { transaction }
-        );
-      } else {
-        await Stock.create(
-          {
-            product_key: line.product_key,
-            location_key: transfer.destination_location_key,
-            quantity_on_hand: line.quantity,
-          },
-          { transaction }
-        );
-      }
-
-      // Create stock movement record
-      await StockMovement.create(
-        {
-          movement_id: `${transfer.transfer_id}-${line.product_key}`,
-          movement_type: "transfer",
-          reference: transfer.transfer_id,
-          product_key: line.product_key,
-          source_location_key: transfer.source_location_key,
-          destination_location_key: transfer.destination_location_key,
-          quantity: line.quantity,
-          uom: line.product.uom,
-          movement_date: new Date(),
-          validated_by: userKey,
-          validated_at: new Date(),
-          notes: transfer.notes,
-          created_by: transfer.created_by,
-          created_at: transfer.created_at,
-        },
-        { transaction }
-      );
-    }
-
-    await transfer.update(
-      {
-        status: "validated",
-        validated_by: userKey,
-        validated_at: new Date(),
-      },
-      { transaction }
-    );
-
-    await transaction.commit();
-
-    return await getTransfer(transferKey);
-  } catch (error) {
-    await transaction.rollback();
-    logger.error("Error in validateTransfer:", error);
-    throw error;
-  }
-};
+export default { getTransfers, getTransferById, createTransfer, updateTransfer, deleteTransfer, validateTransfer };
