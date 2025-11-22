@@ -7,6 +7,49 @@
   position: relative;
 }
 
+/* ========== BACK BUTTON ========== */
+.back-button {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 200;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.back-button:hover {
+  background: white;
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.back-button:active {
+  transform: translateX(-2px);
+}
+
+@media (max-width: 768px) {
+  .back-button {
+    top: 16px;
+    left: 16px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
 /* ========== ANIMATED BACKGROUND CIRCLES ========== */
 .bg-circles {
   position: absolute;
