@@ -3,7 +3,7 @@ import Role from "../models/Role.js";
 import { generateToken } from "../utils/generateToken.js";
 import logger from "../config/logger.js";
 
-export const registerUserService = async (name, email, password) => {
+export const registerUserService = async (name, email, password, roleName = "warehouse_staff") => {
   try {
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -14,15 +14,21 @@ export const registerUserService = async (name, email, password) => {
       throw error;
     }
 
-    // Get or create default "user" role
-    let userRole = await Role.findOne({ where: { role_name: "user" } });
+    // Validate role name (security check) - only 2 roles allowed
+    const allowedRoles = ["inventory_manager", "warehouse_staff"];
+    if (!allowedRoles.includes(roleName)) {
+      const error = new Error("Invalid role selected. Only 'inventory_manager' and 'warehouse_staff' are allowed.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Get or create the specified role
+    let userRole = await Role.findOne({ where: { role_name: roleName } });
     
     if (!userRole) {
-      // Create default roles if they don't exist
-      userRole = await Role.create({
-        role_name: "user",
-        role_id: 2,
-      });
+      const error = new Error(`Role '${roleName}' not found. Please contact administrator.`);
+      error.statusCode = 400;
+      throw error;
     }
 
     // Create new user
@@ -34,13 +40,16 @@ export const registerUserService = async (name, email, password) => {
       is_active: true,
     });
 
-    logger.info(`New user created: ${email} with role_key: ${userRole.role_key}`);
+    logger.info(`New user created: ${email} with role: ${roleName} (role_key: ${userRole.role_key})`);
 
     // Generate token using user_key
     const token = generateToken(user.user_key);
 
-    // Format response (exclude password)
-    const userResponse = user.toJSON();
+    // Format response (exclude password, include role name)
+    const userResponse = {
+      ...user.toJSON(),
+      role: userRole.role_name, // Add the actual role name
+    };
 
     return {
       user: userResponse,
@@ -81,11 +90,18 @@ export const loginUserService = async (email, password) => {
       throw error;
     }
 
+    // Get the user's role name
+    const userRole = await Role.findByPk(user.role_key);
+    const roleName = userRole ? userRole.role_name : "warehouse_staff"; // fallback
+
     // Generate token using user_key
     const token = generateToken(user.user_key);
 
-    // Format response (exclude password)
-    const userResponse = user.toJSON();
+    // Format response (exclude password, include role name)
+    const userResponse = {
+      ...user.toJSON(),
+      role: roleName, // Add the actual role name
+    };
 
     return {
       user: userResponse,

@@ -15,8 +15,8 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password } = req.body;
-    const result = await registerUserService(name, email, password);
+    const { name, email, password, role } = req.body;
+    const result = await registerUserService(name, email, password, role);
 
     res.status(201).json({
       success: true,
@@ -64,9 +64,20 @@ export const getMe = async (req, res, next) => {
       });
     }
 
+    // Get the user's role name
+    const Role = (await import("../models/Role.js")).default;
+    const userRole = await Role.findByPk(user.role_key);
+    const roleName = userRole ? userRole.role_name : "warehouse_staff";
+
+    // Include role name in response
+    const userWithRole = {
+      ...user.toJSON(),
+      role: roleName,
+    };
+
     res.json({
       success: true,
-      data: { user },
+      data: { user: userWithRole },
     });
   } catch (error) {
     logger.error("GetMe error:", error.message);

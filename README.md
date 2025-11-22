@@ -74,6 +74,12 @@ CLIENT_URL=http://localhost:5173
 **Client .env** (`client/.env`):
 ```
 VITE_API_URL=http://localhost:5001
+
+# EmailJS (Optional - for password reset emails)
+# See EMAILJS_QUICK_START.md for setup
+VITE_EMAILJS_SERVICE_ID=your_service_id
+VITE_EMAILJS_TEMPLATE_ID=your_template_id
+VITE_EMAILJS_PUBLIC_KEY=your_public_key
 ```
 
 ### Database Setup
@@ -112,6 +118,16 @@ cd client
 npm run dev
 ```
 Frontend will run on `http://localhost:5173` (Vite will print the exact URL)
+
+### 📧 Email Configuration (Optional)
+
+The app includes **OTP-based password reset** functionality using **EmailJS**:
+
+- **Without Setup**: OTP codes are logged to server console (perfect for development)
+- **With Setup**: Real emails sent to users (takes 5 minutes)
+
+**Quick Setup**: See `EMAILJS_QUICK_START.md` for 3-step guide  
+**Detailed Guide**: See `EMAILJS_SETUP.md` for complete instructions
 
 ### Database Integration & Authentication
 

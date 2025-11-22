@@ -39,8 +39,15 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Attach user to request
-    req.user = user;
+    // Get the user's role name
+    const userRole = await Role.findByPk(user.role_key);
+    const roleName = userRole ? userRole.role_name : "warehouse_staff";
+
+    // Attach user to request with role name
+    req.user = {
+      ...user.toJSON(),
+      role: roleName,
+    };
 
     next();
   } catch (error) {

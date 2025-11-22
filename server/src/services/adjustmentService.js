@@ -1,0 +1,365 @@
+import sequelize from "../config/db.js";
+import {
+  Adjustment,
+  AdjustmentLine,
+  Location,
+  Product,
+  Stock,
+  StockMovement,
+  User,
+} from "../models/index.js";
+import logger from "../config/logger.js";
+
+const generateAdjustmentId = async () => {
+  const lastAdjustment = await Adjustment.findOne({
+    order: [["adjustment_key", "DESC"]],
+  });
+  
+  const nextNumber = lastAdjustment ? parseInt(lastAdjustment.adjustment_id.split("-")[1]) + 1 : 1;
+  return `ADJ-${String(nextNumber).padStart(5, "0")}`;
+};
+
+export const getAdjustments = async () => {
+  try {
+    const adjustments = await Adjustment.findAll({
+      include: [
+        {
+          model: Location,
+          as: "location",
+          attributes: ["location_key", "location_name"],
+        },
+        {
+          model: User,
+          as: "creator",
+          attributes: ["user_key", "username", "first_name", "last_name"],
+        },
+        {
+          model: User,
+          as: "validator",
+          attributes: ["user_key", "username", "first_name", "last_name"],
+        },
+        {
+          model: AdjustmentLine,
+          as: "lines",
+          include: [
+            {
+              model: Product,
+              as: "product",
+              attributes: ["product_key", "product_name", "sku", "uom"],
+            },
+          ],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    return adjustments;
+  } catch (error) {
+    logger.error("Error in getAdjustments:", error);
+    throw error;
+  }
+};
+
+export const getAdjustment = async (adjustmentKey) => {
+  try {
+    const adjustment = await Adjustment.findByPk(adjustmentKey, {
+      include: [
+        {
+          model: Location,
+          as: "location",
+          attributes: ["location_key", "location_name"],
+        },
+        {
+          model: User,
+          as: "creator",
+          attributes: ["user_key", "username", "first_name", "last_name"],
+        },
+        {
+          model: User,
+          as: "validator",
+          attributes: ["user_key", "username", "first_name", "last_name"],
+        },
+        {
+          model: AdjustmentLine,
+          as: "lines",
+          include: [
+            {
+              model: Product,
+              as: "product",
+              attributes: ["product_key", "product_name", "sku", "uom"],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!adjustment) {
+      throw new Error("Adjustment not found");
+    }
+
+    return adjustment;
+  } catch (error) {
+    logger.error("Error in getAdjustment:", error);
+    throw error;
+  }
+};
+
+export const createAdjustment = async (adjustmentData, userKey) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const adjustmentId = await generateAdjustmentId();
+
+    const adjustment = await Adjustment.create(
+      {
+        adjustment_id: adjustmentId,
+        location_key: adjustmentData.location_key,
+        adjustment_date: adjustmentData.adjustment_date || new Date(),
+        notes: adjustmentData.notes,
+        created_by: userKey,
+      },
+      { transaction }
+    );
+
+    if (adjustmentData.lines && adjustmentData.lines.length > 0) {
+      // Fetch system quantities for each product
+      const lines = await Promise.all(
+        adjustmentData.lines.map(async (line) => {
+          const stock = await Stock.findOne({
+            where: {
+              product_key: line.product_key,
+              location_key: adjustmentData.location_key,
+            },
+            transaction,
+          });
+
+          const systemQuantity = stock ? parseFloat(stock.quantity_on_hand) : 0;
+          const countedQuantity = parseFloat(line.counted_quantity);
+          const difference = countedQuantity - systemQuantity;
+
+          return {
+            adjustment_key: adjustment.adjustment_key,
+            product_key: line.product_key,
+            system_quantity: systemQuantity,
+            counted_quantity: countedQuantity,
+            difference: difference,
+          };
+        })
+      );
+
+      await AdjustmentLine.bulkCreate(lines, { transaction });
+    }
+
+    await transaction.commit();
+
+    return await getAdjustment(adjustment.adjustment_key);
+  } catch (error) {
+    await transaction.rollback();
+    logger.error("Error in createAdjustment:", error);
+    throw error;
+  }
+};
+
+export const updateAdjustment = async (adjustmentKey, adjustmentData) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const adjustment = await Adjustment.findByPk(adjustmentKey);
+
+    if (!adjustment) {
+      throw new Error("Adjustment not found");
+    }
+
+    if (adjustment.status === "validated") {
+      throw new Error("Cannot update a validated adjustment");
+    }
+
+    await adjustment.update(
+      {
+        location_key: adjustmentData.location_key,
+        adjustment_date: adjustmentData.adjustment_date,
+        notes: adjustmentData.notes,
+      },
+      { transaction }
+    );
+
+    if (adjustmentData.lines) {
+      await AdjustmentLine.destroy({
+        where: { adjustment_key: adjustmentKey },
+        transaction,
+      });
+
+      if (adjustmentData.lines.length > 0) {
+        // Fetch system quantities for each product
+        const lines = await Promise.all(
+          adjustmentData.lines.map(async (line) => {
+            const stock = await Stock.findOne({
+              where: {
+                product_key: line.product_key,
+                location_key: adjustmentData.location_key,
+              },
+              transaction,
+            });
+
+            const systemQuantity = stock ? parseFloat(stock.quantity_on_hand) : 0;
+            const countedQuantity = parseFloat(line.counted_quantity);
+            const difference = countedQuantity - systemQuantity;
+
+            return {
+              adjustment_key: adjustmentKey,
+              product_key: line.product_key,
+              system_quantity: systemQuantity,
+              counted_quantity: countedQuantity,
+              difference: difference,
+            };
+          })
+        );
+
+        await AdjustmentLine.bulkCreate(lines, { transaction });
+      }
+    }
+
+    await transaction.commit();
+
+    return await getAdjustment(adjustmentKey);
+  } catch (error) {
+    await transaction.rollback();
+    logger.error("Error in updateAdjustment:", error);
+    throw error;
+  }
+};
+
+export const deleteAdjustment = async (adjustmentKey) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const adjustment = await Adjustment.findByPk(adjustmentKey);
+
+    if (!adjustment) {
+      throw new Error("Adjustment not found");
+    }
+
+    if (adjustment.status === "validated") {
+      throw new Error("Cannot delete a validated adjustment");
+    }
+
+    await AdjustmentLine.destroy({
+      where: { adjustment_key: adjustmentKey },
+      transaction,
+    });
+
+    await adjustment.destroy({ transaction });
+
+    await transaction.commit();
+
+    return { message: "Adjustment deleted successfully" };
+  } catch (error) {
+    await transaction.rollback();
+    logger.error("Error in deleteAdjustment:", error);
+    throw error;
+  }
+};
+
+export const validateAdjustment = async (adjustmentKey, userKey) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const adjustment = await Adjustment.findByPk(adjustmentKey, {
+      include: [
+        {
+          model: AdjustmentLine,
+          as: "lines",
+          include: [
+            {
+              model: Product,
+              as: "product",
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!adjustment) {
+      throw new Error("Adjustment not found");
+    }
+
+    if (adjustment.status === "validated") {
+      throw new Error("Adjustment is already validated");
+    }
+
+    if (!adjustment.lines || adjustment.lines.length === 0) {
+      throw new Error("Cannot validate an adjustment with no lines");
+    }
+
+    // Update stock for each line based on difference
+    for (const line of adjustment.lines) {
+      if (parseFloat(line.difference) === 0) {
+        continue; // No change needed
+      }
+
+      const stock = await Stock.findOne({
+        where: {
+          product_key: line.product_key,
+          location_key: adjustment.location_key,
+        },
+        transaction,
+      });
+
+      if (stock) {
+        await stock.update(
+          {
+            quantity_on_hand: parseFloat(line.counted_quantity),
+          },
+          { transaction }
+        );
+      } else {
+        await Stock.create(
+          {
+            product_key: line.product_key,
+            location_key: adjustment.location_key,
+            quantity_on_hand: line.counted_quantity,
+          },
+          { transaction }
+        );
+      }
+
+      // Create stock movement record
+      await StockMovement.create(
+        {
+          movement_id: `${adjustment.adjustment_id}-${line.product_key}`,
+          movement_type: "adjustment",
+          reference: adjustment.adjustment_id,
+          product_key: line.product_key,
+          source_location_key: parseFloat(line.difference) > 0 ? null : adjustment.location_key,
+          destination_location_key: parseFloat(line.difference) > 0 ? adjustment.location_key : null,
+          quantity: Math.abs(parseFloat(line.difference)),
+          uom: line.product.uom,
+          movement_date: new Date(),
+          validated_by: userKey,
+          validated_at: new Date(),
+          notes: `Adjustment: ${line.difference > 0 ? "+" : ""}${line.difference} (System: ${line.system_quantity}, Counted: ${line.counted_quantity})`,
+          created_by: adjustment.created_by,
+          created_at: adjustment.created_at,
+        },
+        { transaction }
+      );
+    }
+
+    await adjustment.update(
+      {
+        status: "validated",
+        validated_by: userKey,
+        validated_at: new Date(),
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
+
+    return await getAdjustment(adjustmentKey);
+  } catch (error) {
+    await transaction.rollback();
+    logger.error("Error in validateAdjustment:", error);
+    throw error;
+  }
+};

@@ -9,12 +9,10 @@ const seedDatabase = async () => {
     await sequelize.authenticate();
     logger.info("Database connection established");
 
-    // Create/update roles
+    // Create/update roles - Only 2 roles
     const roles = [
-      { role_name: "admin", role_id: 1 },
-      { role_name: "user", role_id: 2 },
-      { role_name: "manager", role_id: 3 },
-      { role_name: "viewer", role_id: 4 },
+      { role_name: "inventory_manager", role_id: 1 },
+      { role_name: "warehouse_staff", role_id: 2 },
     ];
 
     for (const role of roles) {
@@ -25,43 +23,46 @@ const seedDatabase = async () => {
       logger.info(`Role '${role.role_name}' initialized`);
     }
 
-    // Find admin role
-    const adminRole = await Role.findOne({ where: { role_name: "admin" } });
+    // Find inventory manager role
+    const managerRole = await Role.findOne({ where: { role_name: "inventory_manager" } });
 
-    // Create a test admin user
-    const adminUser = await User.findOrCreate({
-      where: { email: "admin@stockmaster.com" },
+    // Create a test inventory manager user
+    const managerUser = await User.findOrCreate({
+      where: { email: "manager@stockmaster.com" },
       defaults: {
-        name: "Admin User",
-        email: "admin@stockmaster.com",
-        password: "Admin@123456", // This will be hashed by the model hook
-        role_key: adminRole.role_key,
+        name: "Inventory Manager",
+        email: "manager@stockmaster.com",
+        password: "Manager@123456", // This will be hashed by the model hook
+        role_key: managerRole.role_key,
         is_active: true,
       },
     });
 
-    if (adminUser[1]) {
-      logger.info("Admin user created: admin@stockmaster.com (password: Admin@123456)");
+    if (managerUser[1]) {
+      logger.info("Inventory Manager created: manager@stockmaster.com (password: Manager@123456)");
     } else {
-      logger.info("Admin user already exists");
+      logger.info("Inventory Manager already exists");
     }
 
-    // Create a test regular user
-    const regularUser = await User.findOrCreate({
-      where: { email: "user@stockmaster.com" },
+    // Find warehouse staff role
+    const staffRole = await Role.findOne({ where: { role_name: "warehouse_staff" } });
+
+    // Create a test warehouse staff user
+    const staffUser = await User.findOrCreate({
+      where: { email: "staff@stockmaster.com" },
       defaults: {
-        name: "Regular User",
-        email: "user@stockmaster.com",
-        password: "User@123456", // This will be hashed by the model hook
-        role_key: 2, // Regular user role
+        name: "Warehouse Staff",
+        email: "staff@stockmaster.com",
+        password: "Staff@123456", // This will be hashed by the model hook
+        role_key: staffRole.role_key,
         is_active: true,
       },
     });
 
-    if (regularUser[1]) {
-      logger.info("Regular user created: user@stockmaster.com (password: User@123456)");
+    if (staffUser[1]) {
+      logger.info("Warehouse Staff created: staff@stockmaster.com (password: Staff@123456)");
     } else {
-      logger.info("Regular user already exists");
+      logger.info("Warehouse Staff already exists");
     }
 
     logger.info("Seed completed successfully");

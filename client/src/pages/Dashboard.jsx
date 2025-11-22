@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import Button from "../components/Button";
+import usePermissions from "../hooks/usePermissions";
 import "../styles/dashboard.css";
 
 // Animated Counter Component
@@ -27,8 +26,8 @@ const AnimatedCounter = ({ value, duration = 2000 }) => {
 };
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const permissions = usePermissions(user);
   const [selectedDocType, setSelectedDocType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedWarehouse, setSelectedWarehouse] = useState("all");
@@ -105,11 +104,6 @@ const Dashboard = () => {
     });
   }, [selectedDocType, selectedStatus, selectedWarehouse]);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case "draft":
@@ -151,37 +145,34 @@ const Dashboard = () => {
         <div className="circle"></div>
       </div>
 
-      {/* Header Section */}
-      <div className="dashboard-header">
-        <div className="header-left">
-          <div className="header-branding">
-            <div className="header-logo-icon">📊</div>
-            <div>
-              <h1 className="header-title">StockMaster Dashboard</h1>
-              <p className="header-subtitle">Inventory Overview & Operations</p>
-            </div>
-          </div>
-        </div>
-        <div className="header-right">
-          <div className="user-info">
-            <span className="user-avatar">{user?.name?.[0] || "U"}</span>
-            <div className="user-details">
-              <p className="user-name">{user?.name || "User"}</p>
-              <p className="user-role">{user?.role || "Staff"}</p>
-            </div>
-          </div>
-          <Button
-            onClick={handleLogout}
-            variant="secondary"
-            className="logout-btn"
-          >
-            Logout
-          </Button>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="dashboard-content">
+      <div className="dashboard-content" style={{ paddingTop: "2rem" }}>
+        {/* User Permissions Info */}
+        <section className="permissions-banner">
+          <div className="banner-content">
+            <span className="banner-icon">
+              {permissions.isAdmin && "👑"}
+              {permissions.isInventoryManager && "📊"}
+              {permissions.isWarehouseStaff && "📦"}
+              {!permissions.isAdmin && !permissions.isInventoryManager && !permissions.isWarehouseStaff && "👤"}
+            </span>
+            <div className="banner-text">
+              <h3>
+                {permissions.isAdmin && "Full Administrator Access"}
+                {permissions.isInventoryManager && "Inventory Manager - Full Control"}
+                {permissions.isWarehouseStaff && "Warehouse Staff - Execute Operations"}
+                {!permissions.isAdmin && !permissions.isInventoryManager && !permissions.isWarehouseStaff && "Standard User - View Only"}
+              </h3>
+              <p>
+                {permissions.isAdmin && "You have complete access to all features"}
+                {permissions.isInventoryManager && "You can create, edit, and delete inventory items"}
+                {permissions.isWarehouseStaff && "You can view and execute inventory operations"}
+                {!permissions.isAdmin && !permissions.isInventoryManager && !permissions.isWarehouseStaff && "You can view inventory and reports"}
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* KPIs Section */}
         <section className="kpis-section">
           <h2 className="section-title">Key Performance Indicators</h2>
@@ -435,7 +426,18 @@ const Dashboard = () => {
                   <div className="table-cell">{doc.count}</div>
                   <div className="table-cell">{doc.warehouse}</div>
                   <div className="table-cell">
-                    <button className="action-btn">View</button>
+                    {permissions.canReadInventory && (
+                      <button className="action-btn" style={{ marginRight: "8px" }}>View</button>
+                    )}
+                    {permissions.canWriteInventory && (
+                      <button className="action-btn action-btn-primary" style={{ marginRight: "8px" }}>Edit</button>
+                    )}
+                    {permissions.canDeleteInventory && (
+                      <button className="action-btn action-btn-danger">Delete</button>
+                    )}
+                    {permissions.canExecuteInventory && !permissions.canWriteInventory && (
+                      <button className="action-btn action-btn-success">Execute</button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -1,19 +1,19 @@
 import app from "./app.js";
 import { sequelize } from "./config/db.js";
 import logger from "./config/logger.js";
-import Role from "./models/Role.js";
-import User from "./models/User.js";
+import { Role, User } from "./models/index.js";
 import { up as migrateAddPassword } from "./migrations/add_password_to_dim_user.js";
+import createPasswordResetTokensTable from "./migrations/create_password_reset_tokens.js";
 
 const PORT = process.env.PORT || 5000;
 
-// Set up model associations
-User.belongsTo(Role, { foreignKey: "role_key", targetKey: "role_key", as: "dim_role" });
+// Model associations are defined in models/index.js
 
 // Run database migrations
 const runMigrations = async () => {
   try {
     await migrateAddPassword();
+    await createPasswordResetTokensTable();
     logger.info("Database migrations completed successfully");
   } catch (error) {
     logger.error("Migration error:", error.message);

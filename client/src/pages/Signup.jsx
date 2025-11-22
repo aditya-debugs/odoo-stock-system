@@ -10,6 +10,7 @@ const Signup = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "warehouse_staff", // Default role
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -108,7 +109,8 @@ const Signup = () => {
       const response = await registerUser(
         formData.name,
         formData.email,
-        formData.password
+        formData.password,
+        formData.role
       );
 
       if (response.success) {
@@ -248,13 +250,32 @@ const Signup = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="you@example.com"
+                  placeholder="john@example.com"
                   className={`form-input ${errors.email ? "error" : ""}`}
                   disabled={loading}
                   autoComplete="email"
                 />
                 {errors.email && (
                   <span className="error-text">{errors.email}</span>
+                )}
+              </div>
+
+              {/* Role Selection */}
+              <div className="form-group">
+                <label htmlFor="role">Role</label>
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="form-input"
+                  disabled={loading}
+                >
+                  <option value="warehouse_staff">Warehouse Staff (Execution Access)</option>
+                  <option value="inventory_manager">Inventory Manager (Full Access)</option>
+                </select>
+                {errors.role && (
+                  <span className="error-text">{errors.role}</span>
                 )}
               </div>
 

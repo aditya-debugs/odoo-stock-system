@@ -312,6 +312,74 @@ section:nth-child(3) {
   }
 }
 
+/* ========== PERMISSIONS BANNER ========== */
+.permissions-banner {
+  width: 100%;
+  margin-bottom: 24px;
+  animation: slideDown 0.5s ease-out;
+}
+
+.permissions-banner .banner-content {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  border-radius: 12px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.permissions-banner .banner-content::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.permissions-banner .banner-icon {
+  font-size: 40px;
+  flex-shrink: 0;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+.permissions-banner .banner-text {
+  color: white;
+  position: relative;
+  z-index: 1;
+}
+
+.permissions-banner .banner-text h3 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.permissions-banner .banner-text p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.95;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ========== KPIs SECTION ========== */
 .kpis-section {
   width: 100%;
@@ -906,6 +974,30 @@ section:nth-child(3) {
 
 .action-btn:active {
   transform: translateY(-1px) scale(1.02);
+}
+
+.action-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.action-btn-primary:hover {
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.action-btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.action-btn-success:hover {
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+.action-btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.action-btn-danger:hover {
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
 }
 
 /* ========== EMPTY STATE ========== */

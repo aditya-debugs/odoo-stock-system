@@ -12,21 +12,31 @@ export const demoLogin = async ({ email, role } = { role: "admin" }) => {
   return response.data;
 };
 
-export const registerUser = async (name, email, password) => {
+export const registerUser = async (name, email, password, role = "user") => {
   const response = await axios.post(`${API_URL}/register`, {
     name,
     email,
     password,
+    role,
   });
   return response.data;
 };
 
 export const getCurrentUser = async () => {
   const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+  
   const response = await axios.get(`${API_URL}/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
   return response.data;
+};
+
+export const logoutUser = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 };

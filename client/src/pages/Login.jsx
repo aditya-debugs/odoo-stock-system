@@ -116,6 +116,16 @@ const Login = () => {
               </div>
             </div>
 
+            {/* Remember Me & Forgot Password */}
+            <div className="form-options">
+              <div className="remember-me">
+                {/* Placeholder for future remember me feature */}
+              </div>
+              <Link to="/forgot-password" className="forgot-password-link">
+                Forgot password?
+              </Link>
+            </div>
+
             {/* Error Message */}
             {error && (
               <div className="error-banner fade-in">
