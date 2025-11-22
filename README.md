@@ -33,11 +33,13 @@ mern-postgres-app/
 
 1. Clone the repository
 2. Install dependencies for all workspaces:
+
    ```bash
    npm run install:all
    ```
 
 3. Set up environment variables:
+
    - Copy `.env.example` to `.env` in both `client/` and `server/` directories
    - Update the values according to your setup
 
@@ -50,12 +52,15 @@ mern-postgres-app/
 ### Running the Application
 
 #### Development Mode
+
 Run both client and server concurrently:
+
 ```bash
 npm run dev
 ```
 
 Or run them separately:
+
 ```bash
 # Terminal 1 - Backend
 npm run server
@@ -65,6 +70,7 @@ npm run client
 ```
 
 #### Production Mode
+
 ```bash
 # Build frontend
 npm run build --workspace=client
