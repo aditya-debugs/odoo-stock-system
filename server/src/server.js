@@ -13,13 +13,18 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
     logger.info("Database connection established successfully");
+    dbConnected = true;
 
     // IMPORTANT: Do NOT sync models when using existing tables from pgAdmin
     // Syncing can modify or drop your existing tables!
     // Only authenticate the connection, don't sync
     // await sequelize.sync({ force: false })
-    await sequelize.sync();
-    logger.info("Database models synchronized");
+    // await sequelize.sync();
+    logger.info("Using existing database tables");
+  } catch (error) {
+    logger.error("Unable to connect to database:", error.message);
+    logger.warn("Server will start without database connection");
+  }
 
   app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
