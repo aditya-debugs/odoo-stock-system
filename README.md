@@ -48,6 +48,41 @@ mern-postgres-app/
    npm run db:migrate --workspace=server
    npm run db:seed --workspace=server
    ```
+#### Run PostgreSQL with Docker (recommended)
+
+If you don't have a local Postgres server, you can run one with Docker using the provided `docker-compose.yml`.
+
+1. Start Postgres and pgAdmin:
+
+```powershell
+docker-compose up -d
+# or: docker compose up -d
+```
+
+2. Copy the example env into the server folder and update if needed:
+
+```powershell
+cd server
+copy .env.example .env
+```
+
+3. Start the server (in project root or inside `server/`):
+
+```powershell
+# from project root
+cd server; npm install; npm run dev
+
+# or from inside server/
+npm install; npm run dev
+```
+
+4. (Optional) Open pgAdmin at `http://localhost:8080` (login: `admin@local` / `admin`) and connect to host `host.docker.internal` or `localhost`, port `5432`, user and password from `.env`.
+
+When finished, stop containers:
+
+```powershell
+docker-compose down
+``` 
 
 ### Running the Application
 
