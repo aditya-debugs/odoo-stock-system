@@ -1,9 +1,9 @@
-import { DataTypes } from 'sequelize'
-import bcrypt from 'bcryptjs'
-import sequelize from '../config/db.js'
+import { DataTypes } from "sequelize";
+import bcrypt from "bcryptjs";
+import sequelize from "../config/db.js";
 
 const User = sequelize.define(
-  'User',
+  "User",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -27,8 +27,8 @@ const User = sequelize.define(
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM('user', 'admin'),
-      defaultValue: 'user',
+      type: DataTypes.ENUM("user", "admin"),
+      defaultValue: "user",
     },
     isActive: {
       type: DataTypes.BOOLEAN,
@@ -40,30 +40,30 @@ const User = sequelize.define(
     hooks: {
       beforeCreate: async (user) => {
         if (user.password) {
-          const salt = await bcrypt.genSalt(10)
-          user.password = await bcrypt.hash(user.password, salt)
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
         }
       },
       beforeUpdate: async (user) => {
-        if (user.changed('password')) {
-          const salt = await bcrypt.genSalt(10)
-          user.password = await bcrypt.hash(user.password, salt)
+        if (user.changed("password")) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
         }
       },
     },
   }
-)
+);
 
 // Instance method to compare password
 User.prototype.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password)
-}
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 // Instance method to get user without password
 User.prototype.toJSON = function () {
-  const values = { ...this.get() }
-  delete values.password
-  return values
-}
+  const values = { ...this.get() };
+  delete values.password;
+  return values;
+};
 
-export default User
+export default User;

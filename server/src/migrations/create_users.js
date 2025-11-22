@@ -2,7 +2,7 @@
 // This is for reference if you want to use migrations manually
 
 export const up = async (queryInterface, Sequelize) => {
-  await queryInterface.createTable('Users', {
+  await queryInterface.createTable("Users", {
     id: {
       type: Sequelize.INTEGER,
       primaryKey: true,
@@ -22,8 +22,8 @@ export const up = async (queryInterface, Sequelize) => {
       allowNull: false,
     },
     role: {
-      type: Sequelize.ENUM('user', 'admin'),
-      defaultValue: 'user',
+      type: Sequelize.ENUM("user", "admin"),
+      defaultValue: "user",
     },
     isActive: {
       type: Sequelize.BOOLEAN,
@@ -37,9 +37,9 @@ export const up = async (queryInterface, Sequelize) => {
       type: Sequelize.DATE,
       allowNull: false,
     },
-  })
-}
+  });
+};
 
 export const down = async (queryInterface, Sequelize) => {
-  await queryInterface.dropTable('Users')
-}
+  await queryInterface.dropTable("Users");
+};

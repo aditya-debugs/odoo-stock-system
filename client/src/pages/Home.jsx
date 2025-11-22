@@ -1,14 +1,22 @@
-import { Link } from 'react-router-dom'
-import Button from '../components/Button'
+import { Link } from "react-router-dom";
+import Button from "../components/Button";
 
 const Home = () => {
   return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
+    <div style={{ padding: "2rem", textAlign: "center" }}>
       <h1>Welcome to MERN + PostgreSQL App</h1>
-      <p style={{ margin: '1rem 0' }}>
-        A full-stack application built with React, Express, Node.js, and PostgreSQL
+      <p style={{ margin: "1rem 0" }}>
+        A full-stack application built with React, Express, Node.js, and
+        PostgreSQL
       </p>
-      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem' }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          justifyContent: "center",
+          marginTop: "2rem",
+        }}
+      >
         <Link to="/login">
           <Button>Login</Button>
         </Link>
@@ -17,7 +25,7 @@ const Home = () => {
         </Link>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;

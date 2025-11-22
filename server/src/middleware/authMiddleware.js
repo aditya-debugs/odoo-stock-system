@@ -1,59 +1,59 @@
-import jwt from 'jsonwebtoken'
-import User from '../models/User.js'
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
     // Get token from header
-    const authHeader = req.headers.authorization
+    const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
-        message: 'No token provided',
-      })
+        message: "No token provided",
+      });
     }
 
-    const token = authHeader.split(' ')[1]
+    const token = authHeader.split(" ")[1];
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Find user
     const user = await User.findByPk(decoded.id, {
-      attributes: { exclude: ['password'] },
-    })
+      attributes: { exclude: ["password"] },
+    });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'User not found',
-      })
+        message: "User not found",
+      });
     }
 
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
-        message: 'Account is deactivated',
-      })
+        message: "Account is deactivated",
+      });
     }
 
     // Attach user to request
-    req.user = user
+    req.user = user;
 
-    next()
+    next();
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
+    if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token',
-      })
+        message: "Invalid token",
+      });
     }
-    if (error.name === 'TokenExpiredError') {
+    if (error.name === "TokenExpiredError") {
       return res.status(401).json({
         success: false,
-        message: 'Token expired',
-      })
+        message: "Token expired",
+      });
     }
-    next(error)
+    next(error);
   }
-}
+};

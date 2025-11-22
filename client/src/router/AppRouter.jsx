@@ -1,18 +1,18 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import Home from '../pages/Home'
-import Login from '../pages/Login'
-import Dashboard from '../pages/Dashboard'
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import Home from "../pages/Home";
+import Login from "../pages/Login";
+import Dashboard from "../pages/Dashboard";
 
 const PrivateRoute = ({ children }) => {
-  const { user, loading } = useAuth()
+  const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
-  return user ? children : <Navigate to="/login" />
-}
+  return user ? children : <Navigate to="/login" />;
+};
 
 const AppRouter = () => {
   return (
@@ -30,7 +30,7 @@ const AppRouter = () => {
         />
       </Routes>
     </BrowserRouter>
-  )
-}
+  );
+};
 
-export default AppRouter
+export default AppRouter;
