@@ -22,7 +22,7 @@ const Button = ({
       color: "white",
     },
     secondary: {
-      backgroundColor: "#6c757d",
+      backgroundColor: "#4f46e5",
       color: "white",
     },
   };
